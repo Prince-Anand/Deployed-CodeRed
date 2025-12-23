@@ -78,7 +78,7 @@ const JobApplicants = () => {
                 amount: order.amount,
                 currency: "INR",
                 name: "Agnt.",
-                image: "/border-favicon.png",
+                image: "https://raw.githubusercontent.com/Prince-Anand/CodeRedProject-FullStack/refs/heads/main/frontend/public/border-favicon.png",
                 description: `Hiring ${app.agent.name}`,
                 order_id: order.id,
                 handler: async function (response) {

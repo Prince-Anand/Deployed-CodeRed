@@ -3,6 +3,7 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Application = require('../models/Application');
 const Job = require('../models/Job');
+const Notification = require('../models/Notification'); // Import Notification model
 
 // Apply to a job
 router.post('/:jobId/apply', auth, async (req, res) => {
@@ -25,6 +26,21 @@ router.post('/:jobId/apply', auth, async (req, res) => {
         });
 
         await application.save();
+
+        // Notify Employer (only if employer is not the applicant)
+        if (job.employer.toString() !== req.user.id) {
+            const notification = new Notification({
+                user: job.employer,
+                message: `New application received for ${job.title}`,
+                type: 'application_received',
+                relatedLink: `/job/${job._id}/applicants`
+            });
+            await notification.save();
+
+            // Emit socket event
+            req.io.to(job.employer.toString()).emit('notification', notification);
+        }
+
         res.json(application);
     } catch (err) {
         console.error(err.message);
@@ -58,14 +74,7 @@ router.get('/job/:jobId', auth, async (req, res) => {
             .populate({
                 path: 'agent',
                 select: 'name email',
-                // We might want to populate profile from Agent model too, 
-                // but simpler to fetch User and maybe separate Agent profile fetch in frontend
-                // OR use virtual populate if setup. 
-                // For now, just user details.
             });
-
-        // To get full profile details, we might need to aggregate. 
-        // But let's keep simple.
 
         res.json(applications);
     } catch (err) {
@@ -77,7 +86,7 @@ router.get('/job/:jobId', auth, async (req, res) => {
 // Update Status (Employer)
 router.post('/:id/status', auth, async (req, res) => {
     try {
-        const { status } = req.body; // 'reviewing', 'selected', 'rejected'
+        const { status } = req.body; // 'reviewing', 'selected', 'rejected', 'hired'
         const application = await Application.findById(req.params.id).populate('job');
 
         if (!application) return res.status(404).json({ msg: 'Application not found' });
@@ -88,6 +97,36 @@ router.post('/:id/status', auth, async (req, res) => {
 
         application.status = status;
         await application.save();
+
+        // Notify Agent of status change (Only for Hired or Rejected)
+        // Notify Agent of status change (Only for Hired or Rejected)
+        console.log(`[Status Update] ID: ${req.params.id}, New Status: ${status}`);
+
+        if (status === 'hired' || status === 'rejected') {
+            let message = '';
+            if (status === 'hired') {
+                message = `Congratulations! You have been hired for ${application.job.title}`;
+            } else if (status === 'rejected') {
+                message = `Your application for ${application.job.title} was rejected`;
+            }
+
+            console.log(`[Notification] Preparing to send '${status}' notification to Agent: ${application.agent}`);
+
+            const notification = new Notification({
+                user: application.agent,
+                message: message,
+                type: 'status_change',
+                relatedLink: `/dashboard`,
+                read: false
+            });
+            await notification.save();
+
+            console.log(`[Socket] Emitting to room: ${application.agent.toString()}`);
+            req.io.to(application.agent.toString()).emit('notification', notification);
+        } else {
+            console.log(`[Notification] Skipped. Status '${status}' is not hired/rejected.`);
+        }
+
         res.json(application);
     } catch (err) {
         console.error(err.message);

@@ -48,7 +48,14 @@ router.get('/', async (req, res) => {
 router.get('/my', authMiddleware, async (req, res) => {
     try {
         const jobs = await Job.find({ employer: req.user.id }).sort({ posted: -1 });
-        res.json(jobs);
+
+        // Add application count to each job
+        const jobsWithCounts = await Promise.all(jobs.map(async (job) => {
+            const applicationCount = await require('../models/Application').countDocuments({ job: job._id });
+            return { ...job.toObject(), applicationCount };
+        }));
+
+        res.json(jobsWithCounts);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

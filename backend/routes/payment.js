@@ -43,10 +43,24 @@ router.post('/verify', auth, async (req, res) => {
 
         if (expectedSignature === razorpay_signature) {
             // Payment success, update application status
-            const application = await Application.findById(applicationId);
+            const application = await Application.findById(applicationId).populate('job');
             if (application) {
                 application.status = 'hired';
                 await application.save();
+
+                // Notify Agent of Hired Status
+                const Notification = require('../models/Notification');
+                const notification = new Notification({
+                    user: application.agent,
+                    message: `Congratulations! You have been hired for ${application.job.title || 'a job'}`, // Populating job might be needed if not fully populated, check schema
+                    type: 'hire_success',
+                    relatedLink: `/dashboard`, // or my-jobs
+                    read: false
+                });
+                await notification.save();
+
+                console.log(`[Payment] Emitting 'Hired' notification to Agent: ${application.agent}`);
+                req.io.to(application.agent.toString()).emit('notification', notification);
             }
             res.json({ status: 'success' });
         } else {

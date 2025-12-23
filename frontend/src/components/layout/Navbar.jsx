@@ -1,16 +1,39 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, ArrowUpRight, LogOut, User } from 'lucide-react';
+import { Menu, X, ArrowUpRight, LogOut, User, Bell, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const { notifications, unreadCount, markAsRead, markAllAsRead } = useSocket() || {}; // Handle null context gracefully initially
+    const [showNotifications, setShowNotifications] = useState(false);
+    const notificationRef = useRef(null);
 
     const handleLogout = () => {
         logout();
         navigate('/');
+    };
+
+    // Close notifications when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+                setShowNotifications(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleNotificationClick = (notification) => {
+        markAsRead(notification._id);
+        setShowNotifications(false);
+        if (notification.relatedLink) {
+            navigate(notification.relatedLink);
+        }
     };
 
     return (
@@ -82,6 +105,73 @@ const Navbar = () => {
                     <div className="hidden md:flex items-center space-x-4">
                         {user ? (
                             <div className="flex items-center gap-4">
+                                {/* Notifications */}
+                                <div className="relative" ref={notificationRef}>
+                                    <button
+                                        onClick={() => setShowNotifications(!showNotifications)}
+                                        className="relative p-2 rounded-full hover:bg-[var(--color-secondary)]/20 transition-colors text-[var(--color-primary-dark)]"
+                                    >
+                                        <Bell className="h-5 w-5" />
+                                        {unreadCount > 0 && (
+                                            <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold border-2 border-white">
+                                                {unreadCount}
+                                            </span>
+                                        )}
+                                    </button>
+
+                                    {showNotifications && (
+                                        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50">
+                                            <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+                                                <h3 className="font-bold text-[var(--color-primary-dark)]">Notifications</h3>
+                                                {unreadCount > 0 && (
+                                                    <button onClick={markAllAsRead} className="text-xs text-[var(--color-primary)] hover:underline">
+                                                        Mark all as read
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="max-h-96 overflow-y-auto">
+                                                {!notifications || notifications.length === 0 ? (
+                                                    <p className="p-4 text-sm text-slate-500 text-center">No notifications.</p>
+                                                ) : (
+                                                    notifications.map(notification => (
+                                                        <div
+                                                            key={notification._id}
+                                                            className={`p-4 border-b border-slate-50 hover:bg-[var(--color-secondary)]/5 transition-colors group relative ${!notification.read ? 'bg-[var(--color-secondary)]/10' : ''}`}
+                                                        >
+                                                            <div
+                                                                onClick={() => handleNotificationClick(notification)}
+                                                                className="cursor-pointer pr-8"
+                                                            >
+                                                                <div className="flex justify-between items-start">
+                                                                    <p className={`text-sm ${!notification.read ? 'font-semibold text-[var(--color-primary-dark)]' : 'text-slate-600'}`}>
+                                                                        {notification.message}
+                                                                    </p>
+                                                                    {!notification.read && <div className="h-2 w-2 rounded-full bg-[var(--color-primary)] mt-1.5 flex-shrink-0"></div>}
+                                                                </div>
+                                                                <p className="text-xs text-slate-400 mt-1">
+                                                                    {new Date(notification.createdAt).toLocaleDateString()}
+                                                                </p>
+                                                            </div>
+                                                            {!notification.read && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        markAsRead(notification._id);
+                                                                    }}
+                                                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-white shadow-sm border border-slate-200 text-slate-400 hover:text-[var(--color-primary)] hover:border-[var(--color-primary)] opacity-0 group-hover:opacity-100 transition-all"
+                                                                    title="Mark as read"
+                                                                >
+                                                                    <Check className="h-4 w-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <Link to="/profile" className="text-sm font-semibold text-[var(--color-primary-dark)] flex items-center gap-2 hover:text-[var(--color-primary)] transition-colors">
                                     <div className="bg-[var(--color-secondary)]/20 p-1 rounded-full">
                                         <User className="h-4 w-4 text-[var(--color-primary)]" />
@@ -111,6 +201,19 @@ const Navbar = () => {
 
                     {/* Mobile menu button */}
                     <div className="flex items-center md:hidden">
+                        {user && (
+                            <button
+                                onClick={() => setShowNotifications(!showNotifications)}
+                                className="relative p-2 rounded-full hover:bg-[var(--color-secondary)]/20 transition-colors text-[var(--color-primary-dark)] mr-2"
+                            >
+                                <Bell className="h-6 w-6" />
+                                {unreadCount > 0 && (
+                                    <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold border-2 border-white">
+                                        {unreadCount}
+                                    </span>
+                                )}
+                            </button>
+                        )}
                         <button
                             onClick={() => setIsOpen(!isOpen)}
                             className="inline-flex items-center justify-center p-2 rounded-md text-[var(--color-primary)] hover:bg-[var(--color-secondary)]/10 focus:outline-none"
@@ -125,6 +228,8 @@ const Navbar = () => {
             {/* Mobile menu */}
             {isOpen && (
                 <div className="md:hidden bg-[var(--color-background)] border-t border-[var(--color-secondary)]/10 absolute w-full left-0 shadow-xl">
+                    {/* Mobile Notifications Panel within Menu? Or separate? Let's keep separate overlay fetch logic but accessing via bell above is easiest. 
+                     Or we can list notifications here if user is logged in. for now keeping bell accessible. */}
                     <div className="px-4 pt-2 pb-3 space-y-1">
                         <Link to="/agents" className="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-primary-dark)] hover:bg-[var(--color-secondary)]/10">
                             Find Agents
@@ -163,6 +268,39 @@ const Navbar = () => {
                                     Sign up
                                 </Link>
                             </>
+                        )}
+                    </div>
+                </div>
+            )}
+            {/* Mobile Notification Dropdown Overlay */}
+            {showNotifications && (
+                <div className="md:hidden absolute top-16 right-0 w-full bg-white shadow-xl border-t border-slate-100 z-40 max-h-[80vh] overflow-y-auto">
+                    <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                        <h3 className="font-bold text-[var(--color-primary-dark)]">Notifications</h3>
+                        {unreadCount > 0 && (
+                            <button onClick={markAllAsRead} className="text-xs text-[var(--color-primary)] hover:underline">
+                                Mark all as read
+                            </button>
+                        )}
+                    </div>
+                    <div>
+                        {!notifications || notifications.length === 0 ? (
+                            <p className="p-4 text-sm text-slate-500 text-center">No notifications.</p>
+                        ) : (
+                            notifications.map(notification => (
+                                <div
+                                    key={notification._id}
+                                    onClick={() => handleNotificationClick(notification)}
+                                    className={`p-4 border-b border-slate-50 cursor-pointer ${!notification.read ? 'bg-[var(--color-secondary)]/10' : ''}`}
+                                >
+                                    <p className={`text-sm ${!notification.read ? 'font-semibold text-[var(--color-primary-dark)]' : 'text-slate-600'}`}>
+                                        {notification.message}
+                                    </p>
+                                    <p className="text-xs text-slate-400 mt-1">
+                                        {new Date(notification.createdAt).toLocaleDateString()}
+                                    </p>
+                                </div>
+                            ))
                         )}
                     </div>
                 </div>

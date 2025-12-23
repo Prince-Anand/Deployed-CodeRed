@@ -113,7 +113,7 @@ const Dashboard = () => {
                                 </div>
                                 <div className="ml-4">
                                     <p className="text-sm font-medium text-slate-500">Total Applicants</p>
-                                    <p className="text-2xl font-bold text-[var(--color-primary)]">0</p>
+                                    <p className="text-2xl font-bold text-[var(--color-primary)]">{myJobs.reduce((acc, job) => acc + (job.applicationCount || 0), 0)}</p>
                                 </div>
                             </div>
                         </div>
@@ -153,7 +153,7 @@ const Dashboard = () => {
                                         </div>
                                         <div className="flex items-center space-x-4">
                                             <div className="text-right">
-                                                <p className="text-2xl font-bold text-[var(--color-primary)]">0</p>
+                                                <p className="text-2xl font-bold text-[var(--color-primary)]">{job.applicationCount || 0}</p>
                                                 <p className="text-xs text-slate-500">Applicants</p>
                                             </div>
                                             <Link to={`/job/${job._id}/applicants`} className="btn btn-outline text-sm px-4 py-2">Manage</Link>

@@ -68,8 +68,8 @@ const AgentSearch = () => {
 
                 {loading ? <p className="text-center text-[var(--color-primary)]">Loading agents...</p> : (
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {filteredAgents.map((agent) => (
-                            <div key={agent.id} className="flex flex-col justify-between card overflow-hidden group">
+                        {filteredAgents.map((agent, index) => (
+                            <div key={agent._id || agent.id || index} className="flex flex-col justify-between card overflow-hidden group">
                                 <div className="p-6">
                                     <div className="flex items-center">
                                         <img className="h-16 w-16 rounded-full object-cover ring-2 ring-[var(--color-secondary)]/20" src={agent.image} alt={agent.name} />
