@@ -1,9 +1,24 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { ArrowRight, CheckCircle, Star, Briefcase, Code, PenTool, Calculator } from 'lucide-react';
 import FadeIn from '../components/common/FadeIn';
+import HowItWorks from '../components/HowItWorks';
 import heroIllustration from '../assets/hero-illustration.jpg';
 
 const Home = () => {
+    const { hash } = useLocation();
+
+    useEffect(() => {
+        if (hash) {
+            const element = document.getElementById(hash.replace('#', ''));
+            if (element) {
+                setTimeout(() => {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+            }
+        }
+    }, [hash]);
+
     return (
         <div className="bg-[var(--color-background)]">
             {/* Hero Section */}
@@ -69,6 +84,10 @@ const Home = () => {
                     </FadeIn>
                 </div>
             </div>
+
+
+            {/* How It Works Section */}
+            <HowItWorks />
 
             {/* Browse Talent by Category Section */}
             <div className="py-24 bg-[var(--color-background)]">

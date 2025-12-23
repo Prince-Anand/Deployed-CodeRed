@@ -68,7 +68,7 @@ const Navbar = () => {
                                 </>
                             )}
 
-                            <Link to="/how-it-works" className="text-sm font-semibold text-[var(--color-primary-dark)] hover:text-[var(--color-primary)] transition-colors">
+                            <Link to="/#how-it-works" className="text-sm font-semibold text-[var(--color-primary-dark)] hover:text-[var(--color-primary)] transition-colors">
                                 How it Works
                             </Link>
                             <span className="text-[var(--color-secondary)]/40">•</span>
@@ -132,7 +132,7 @@ const Navbar = () => {
                         <Link to="/jobs" className="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-primary-dark)] hover:bg-[var(--color-secondary)]/10">
                             Find Jobs
                         </Link>
-                        <Link to="/how-it-works" className="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-primary-dark)] hover:bg-[var(--color-secondary)]/10">
+                        <Link to="/#how-it-works" className="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-primary-dark)] hover:bg-[var(--color-secondary)]/10">
                             How it Works
                         </Link>
                         <Link to="/support" className="block px-3 py-2 rounded-md text-base font-medium text-[var(--color-primary-dark)] hover:bg-[var(--color-secondary)]/10">
